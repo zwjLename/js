@@ -1,13 +1,18 @@
-function deepClone(obj) {
-    // 处理继承的属性和不可枚举的属性
+function deepClone(obj, map = new WeakMap()) {
+    if (typeof obj !== 'object' || obj === null) return obj;
+
+    // 循环引用：已拷贝过的对象直接返回其副本
+    if (map.has(obj)) return map.get(obj);
+
     const cloneObj = Object.create(
         Object.getPrototypeOf(obj),
         Object.getOwnPropertyDescriptors(obj)
     );
-    // 处理Symbol的属性和普通的属性
+    map.set(obj, cloneObj);
+
     for (let key of Reflect.ownKeys(obj)) {
-        let value = obj[key];
-        cloneObj[key] = typeof value === 'object' && value !== null ? deepClone(value) : value
+        const value = obj[key];
+        cloneObj[key] = typeof value === 'object' && value !== null ? deepClone(value, map) : value;
     }
     return cloneObj;
 }
@@ -48,6 +53,12 @@ const obj = {
     json: {
         hello: 'world'
     },
-   
-}
-console.log(deepClone(obj))
+};
+// 循环引用：自引用
+obj.self = obj;
+obj.arr.push(obj);
+
+const cloned = deepClone(obj);
+console.log(cloned);
+console.log(cloned.self === cloned);           // true，指向克隆后的自己
+console.log(cloned.arr[4] === cloned);         // true
